@@ -425,6 +425,13 @@ async function run() {
     const taskDefArn = registerResponse.taskDefinition.taskDefinitionArn;
     core.setOutput('task-definition-arn', taskDefArn);
 
+    // if tags come from the task definition, set tags on the new task def
+    if ('tags' in taskDefContents) {
+      const tagsArray = taskDefContents.tags;
+      console.log('The "tags" key exists in the file contents: ', tagsArray);
+      await ecs.tagResource({ resourceArn: taskDefArn, tags: tagsArray });
+    }
+
     // Run the task outside of the service
     const clusterName = cluster ? cluster : 'default';
     const shouldRunTaskInput = core.getInput('run-task', { required: false }) || 'false';
