@@ -428,7 +428,7 @@ async function run() {
     // if tags come from the task definition, set tags on the new task def
     if ('tags' in taskDefContents) {
       const tagsArray = taskDefContents.tags;
-      console.log('The "tags" key exists in the file contents: ', tagsArray);
+      core.debug(`Tag ${taskDefArn} task definition with ${tagsArray}`);
       await ecs.tagResource({ resourceArn: taskDefArn, tags: tagsArray });
     }
 
