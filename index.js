@@ -402,17 +402,25 @@ async function run() {
       taskDefinitionFile :
       path.join(process.env.GITHUB_WORKSPACE, taskDefinitionFile);
     const fileContents = fs.readFileSync(taskDefPath, 'utf8');
+    core.debug("Task definition contents without cleaning:");
+    core.debug(fileContents);
     const taskDefContents = maintainValidObjects(removeIgnoredAttributes(cleanNullKeys(yaml.parse(fileContents))));
+    core.debug("Task definition contents before registering:");
+    core.debug(JSON.stringify(taskDefContents, undefined, 4));
     let registerResponse;
     try {
+      core.debug("Task definition registering");
       registerResponse = await ecs.registerTaskDefinition(taskDefContents);
+      core.debug("End of task definition registering");
     } catch (error) {
       core.setFailed("Failed to register task definition in ECS: " + error.message);
       core.debug("Task definition contents:");
       core.debug(JSON.stringify(taskDefContents, undefined, 4));
       throw(error);
     }
+    core.debug("Register response");
     const taskDefArn = registerResponse.taskDefinition.taskDefinitionArn;
+    core.debug("end of register response");
     core.setOutput('task-definition-arn', taskDefArn);
 
     // Run the task outside of the service
