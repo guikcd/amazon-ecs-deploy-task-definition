@@ -403,7 +403,24 @@ async function run() {
     if (enableECSManagedTagsInput !== '') {
       enableECSManagedTags = enableECSManagedTagsInput.toLowerCase() === 'true';
     }
-    const propagateTags = core.getInput('propagate-tags', { required: false }) || 'NONE';
+
+    // get the current propagateTags of the service
+    // set it to NONE if api answer null (old services?)
+    let currentPropagateTags = 'NONE';
+    try {
+      describeServicesResponse = await ecs.describeServices({
+        services: [service],
+        cluster: cluster
+      })
+      if (describeServicesResponse.services[0].propagateTags != null) {
+        currentPropagateTags = describeServicesResponse.services[0].propagateTags;
+      }
+    } catch (error) {
+      core.setFailed("Failed to get current 'propagateTags' of the service: " + error.message);
+      throw(error);
+    }
+    core.debug(`Current service 'propagateTags' value: ${currentPropagateTags}`);
+    const propagateTags = core.getInput('propagate-tags', { required: false }) || currentPropagateTags;
 
     // Register the task definition
     core.debug('Registering the task definition');
