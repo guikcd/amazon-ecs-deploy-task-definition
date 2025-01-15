@@ -403,7 +403,7 @@ async function run() {
     if (enableECSManagedTagsInput !== '') {
       enableECSManagedTags = enableECSManagedTagsInput.toLowerCase() === 'true';
     }
-    const propagateTags = core.getInput('propagate-tags', { required: false }) || 'NONE';
+    let propagateTags = core.getInput('propagate-tags', { required: false }) || '';
 
     // Register the task definition
     core.debug('Registering the task definition');
@@ -450,6 +450,11 @@ async function run() {
       const serviceResponse = describeResponse.services[0];
       if (serviceResponse.status != 'ACTIVE') {
         throw new Error(`Service is ${serviceResponse.status}`);
+      }
+      // set propagateTags to the current value if no input provided
+      if (describeResponse.services[0].propagateTags != null && propagateTags === '') {
+        propagateTags = describeResponse.services[0].propagateTags;
+        core.debug(`Current service 'propagateTags' value '${describeResponse.services[0].propagateTags}' will be set to service`);
       }
 
       if (!serviceResponse.deploymentController || !serviceResponse.deploymentController.type || serviceResponse.deploymentController.type === 'ECS') {

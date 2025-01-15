@@ -96,7 +96,7 @@ describe('Deploy to ECS', () => {
             () => Promise.resolve({
                 failures: [],
                 services: [{ 
-                    status: 'ACTIVE' 
+                    status: 'ACTIVE'
                 }]
             })
         );
@@ -187,7 +187,7 @@ describe('Deploy to ECS', () => {
             taskDefinition: 'task:def:arn',
             forceNewDeployment: false,
             enableECSManagedTags: null,
-            propagateTags: 'NONE'
+            propagateTags: ''
         });
         expect(waitUntilServicesStable).toHaveBeenCalledTimes(0);
         expect(core.info).toBeCalledWith("Deployment started. Watch this deployment's progress in the Amazon ECS console: https://fake-region.console.aws.amazon.com/ecs/v2/clusters/cluster-789/services/service-456/events?region=fake-region");
@@ -220,7 +220,7 @@ describe('Deploy to ECS', () => {
             taskDefinition: 'task:def:arn',
             forceNewDeployment: false,
             enableECSManagedTags: null,
-            propagateTags: 'NONE'
+            propagateTags: ''
         });
         expect(waitUntilServicesStable).toHaveBeenCalledTimes(0);
         expect(core.info).toBeCalledWith("Deployment started. Watch this deployment's progress in the Amazon ECS console: https://fake-region.console.aws.amazon.com/ecs/v2/clusters/cluster-789/services/service-456/events?region=fake-region");
@@ -955,7 +955,7 @@ describe('Deploy to ECS', () => {
             taskDefinition: 'task:def:arn',
             forceNewDeployment: false,
             enableECSManagedTags: null,
-            propagateTags: 'NONE'
+            propagateTags: ''
         });
         expect(waitUntilServicesStable).toHaveBeenNthCalledWith(
             1,
@@ -996,7 +996,7 @@ describe('Deploy to ECS', () => {
             taskDefinition: 'task:def:arn',
             forceNewDeployment: false,
             enableECSManagedTags: null,
-            propagateTags: 'NONE'
+            propagateTags: ''
         });
         expect(waitUntilServicesStable).toHaveBeenNthCalledWith(
             1,
@@ -1037,7 +1037,7 @@ describe('Deploy to ECS', () => {
             taskDefinition: 'task:def:arn',
             forceNewDeployment: false,
             enableECSManagedTags: null,
-            propagateTags: 'NONE'
+            propagateTags: ''
         });
         expect(waitUntilServicesStable).toHaveBeenNthCalledWith(
             1,
@@ -1080,7 +1080,7 @@ describe('Deploy to ECS', () => {
             taskDefinition: 'task:def:arn',
             forceNewDeployment: true,
             enableECSManagedTags: null,
-            propagateTags: 'NONE'
+            propagateTags: ''
         });
     });
 
@@ -1106,7 +1106,7 @@ describe('Deploy to ECS', () => {
             taskDefinition: 'task:def:arn',
             forceNewDeployment: false,
             enableECSManagedTags: null,
-            propagateTags: 'NONE'
+            propagateTags: ''
         });
     });
 
@@ -1277,7 +1277,7 @@ describe('Deploy to ECS', () => {
             taskDefinition: 'task:def:arn',
             forceNewDeployment: false,
             enableECSManagedTags: null,
-            propagateTags: 'NONE',
+            propagateTags: '',
         });
         expect(mockRunTask).toHaveBeenCalledWith({
             startedBy: 'someJoe',
@@ -1618,7 +1618,7 @@ describe('Deploy to ECS', () => {
             .mockReturnValueOnce('')                     // force-new-deployment
             .mockReturnValueOnce('')                     // desired-count
             .mockReturnValueOnce('true')                 // enable-ecs-managed-tags
-            .mockReturnValueOnce('SERVICE');             // propagate-tags      
+            .mockReturnValueOnce('SERVICE');             // propagate-tags
 
         await run();
         expect(core.setFailed).toHaveBeenCalledTimes(0);
@@ -1650,9 +1650,52 @@ describe('Deploy to ECS', () => {
             .mockReturnValueOnce('')                     // force-new-deployment
             .mockReturnValueOnce('')                     // desired-count
             .mockReturnValueOnce('false')                // enable-ecs-managed-tags
-            .mockReturnValueOnce('SERVICE');             // propagate-tags      
+            .mockReturnValueOnce('SERVICE');             // propagate-tags
 
         await run();
+        expect(core.setFailed).toHaveBeenCalledTimes(0);
+
+        expect(mockEcsRegisterTaskDef).toHaveBeenNthCalledWith(1, { family: 'task-def-family' });
+        expect(core.setOutput).toHaveBeenNthCalledWith(1, 'task-definition-arn', 'task:def:arn');
+        expect(mockEcsDescribeServices).toHaveBeenNthCalledWith(1, {
+            cluster: 'cluster-789',
+            services: ['service-456']
+        });
+        expect(mockEcsUpdateService).toHaveBeenNthCalledWith(1, {
+            cluster: 'cluster-789',
+            service: 'service-456',
+            taskDefinition: 'task:def:arn',
+            forceNewDeployment: false,
+            enableECSManagedTags: false,
+            propagateTags: 'SERVICE'
+        });
+    });
+
+    test('set propagateTags value from service if no input provided', async () => {
+        mockEcsDescribeServices.mockImplementation(
+            () => Promise.resolve({
+                failures: [],
+                services: [{
+                    status: 'ACTIVE',
+                    propagateTags: 'SERVICE',
+                }]
+            })
+        );
+
+        core.getInput = jest
+            .fn()
+            .mockReturnValueOnce('task-definition.json') // task-definition
+            .mockReturnValueOnce('service-456')          // service
+            .mockReturnValueOnce('cluster-789')          // cluster
+            .mockReturnValueOnce('false')                // wait-for-service-stability
+            .mockReturnValueOnce('')                     // wait-for-minutes
+            .mockReturnValueOnce('')                     // force-new-deployment
+            .mockReturnValueOnce('')                     // desired-count
+            .mockReturnValueOnce('false')                // enable-ecs-managed-tags
+            .mockReturnValueOnce('');                    // propagate-tags
+
+        await run();
+
         expect(core.setFailed).toHaveBeenCalledTimes(0);
 
         expect(mockEcsRegisterTaskDef).toHaveBeenNthCalledWith(1, { family: 'task-def-family' });
